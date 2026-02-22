@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-BIM Agent - Création de Mur
+BIM Agent - Creation de Mur
 """
 
 from Autodesk.Revit.DB import *
@@ -10,30 +10,41 @@ import clr
 clr.AddReference('RevitAPI')
 clr.AddReference('RevitAPIUI')
 
-# Paramètres
+# Parametres
 WALL_THICKNESS_MM = 200
 WALL_HEIGHT_M = 2.8
-TARGET_LEVEL = "Niveau 1"
 
 WALL_THICKNESS = WALL_THICKNESS_MM / 304.8
 WALL_HEIGHT = WALL_HEIGHT_M * 3.28084
 
 
-def create_wall(doc, uidoc):
-    """Crée un mur"""
+def get_active_level(doc):
+    """Recupere le niveau actif"""
+    active_view = doc.ActiveView
     
-    base_level = None
-    top_level = None
+    if hasattr(active_view, 'GenLevel') and active_view.GenLevel:
+        return active_view.GenLevel
+    
+    view_elevation = active_view.Origin.Z
+    closest_level = None
+    min_diff = float('inf')
     
     for lvl in FilteredElementCollector(doc).OfClass(Level):
-        if lvl.Name == TARGET_LEVEL:
-            base_level = lvl
-        if base_level and lvl.Elevation > base_level.Elevation:
-            if not top_level or lvl.Elevation < top_level.Elevation:
-                top_level = lvl
+        diff = abs(lvl.Elevation - view_elevation)
+        if diff < min_diff:
+            min_diff = diff
+            closest_level = lvl
+    
+    return closest_level
+
+
+def create_wall(doc, uidoc):
+    """Cree un mur"""
+    
+    base_level = get_active_level(doc)
     
     if not base_level:
-        TaskDialog.Show("Erreur", "Niveau '" + TARGET_LEVEL + "' non trouvé!")
+        TaskDialog.Show("Erreur", "Aucun niveau detecte. Passe en vue de plan.")
         return None
     
     wall_type = None
@@ -43,17 +54,17 @@ def create_wall(doc, uidoc):
             break
     
     if not wall_type:
-        TaskDialog.Show("Erreur", "Aucun type de mur trouvé!")
+        TaskDialog.Show("Erreur", "Aucun type de mur trouve!")
         return None
     
-    TaskDialog.Show("Info", "Dessinez la ligne du mur (2 points)")
+    TaskDialog.Show("Info", "Dessine le mur (2 points)")
     
-    start_point = uidoc.Selection.PickPoint("Point de départ")
+    start_point = uidoc.Selection.PickPoint("Point de depart")
     end_point = uidoc.Selection.PickPoint("Point de fin")
     
     line = Line.CreateBound(start_point, end_point)
     
-    with Transaction(doc, "Créer Mur") as t:
+    with Transaction(doc, "Creer Mur") as t:
         t.Start()
         
         wall = Wall.Create(
@@ -69,11 +80,11 @@ def create_wall(doc, uidoc):
         
         t.Commit()
     
-    TaskDialog.Show("Succès", 
-        "Mur créé!\\n"
-        "Épaisseur: " + str(WALL_THICKNESS_MM) + "mm\\n"
-        "Hauteur: " + str(WALL_HEIGHT_M) + "m\\n"
-        "Niveau: " + TARGET_LEVEL)
+    TaskDialog.Show("Succes", 
+        "Mur cree!\n"
+        "Epaisseur: " + str(WALL_THICKNESS_MM) + "mm\n"
+        "Hauteur: " + str(WALL_HEIGHT_M) + "m\n"
+        "Niveau: " + base_level.Name)
     
     return wall
 

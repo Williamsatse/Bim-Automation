@@ -1,32 +1,46 @@
 # -*- coding: utf-8 -*-
 """
-BIM Agent - Création de Toit
+BIM Agent - Creation de Toit
 """
 
 from Autodesk.Revit.DB import *
 from Autodesk.Revit.UI import *
 import clr
-import math
 
 clr.AddReference('RevitAPI')
 clr.AddReference('RevitAPIUI')
 
-# Paramètres
+# Parametres
 ROOF_SLOPE_DEG = 30.0
-TARGET_LEVEL = "Niveau 2"
+
+
+def get_active_level(doc):
+    """Recupere le niveau actif"""
+    active_view = doc.ActiveView
+    
+    if hasattr(active_view, 'GenLevel') and active_view.GenLevel:
+        return active_view.GenLevel
+    
+    view_elevation = active_view.Origin.Z
+    closest_level = None
+    min_diff = float('inf')
+    
+    for lvl in FilteredElementCollector(doc).OfClass(Level):
+        diff = abs(lvl.Elevation - view_elevation)
+        if diff < min_diff:
+            min_diff = diff
+            closest_level = lvl
+    
+    return closest_level
 
 
 def create_roof(doc, uidoc):
-    """Crée un toit"""
+    """Cree un toit"""
     
-    level = None
-    for lvl in FilteredElementCollector(doc).OfClass(Level):
-        if lvl.Name == TARGET_LEVEL:
-            level = lvl
-            break
+    level = get_active_level(doc)
     
     if not level:
-        TaskDialog.Show("Erreur", "Niveau '" + TARGET_LEVEL + "' non trouvé!")
+        TaskDialog.Show("Erreur", "Aucun niveau detecte.")
         return None
     
     roof_type = None
@@ -35,10 +49,10 @@ def create_roof(doc, uidoc):
         break
     
     if not roof_type:
-        TaskDialog.Show("Erreur", "Aucun type de toit trouvé!")
+        TaskDialog.Show("Erreur", "Aucun type de toit trouve!")
         return None
     
-    TaskDialog.Show("Info", "Sélectionnez les points du contour du toit (ESC pour terminer)")
+    TaskDialog.Show("Info", "Selectionne les points du contour (ESC pour finir)")
     
     points = []
     while True:
@@ -52,7 +66,6 @@ def create_roof(doc, uidoc):
         TaskDialog.Show("Erreur", "Il faut au moins 3 points!")
         return None
     
-    # Crée le contour
     curve_loop = CurveLoop()
     for i in range(len(points)):
         start = points[i]
@@ -60,18 +73,12 @@ def create_roof(doc, uidoc):
         line = Line.CreateBound(start, end)
         curve_loop.Append(line)
     
-    with Transaction(doc, "Créer Toit") as t:
+    with Transaction(doc, "Creer Toit") as t:
         t.Start()
         
         try:
-            roof = Floor.Create(
-                doc,
-                [curve_loop],
-                roof_type.Id,
-                level.Id
-            )
+            roof = Floor.Create(doc, [curve_loop], roof_type.Id, level.Id)
         except:
-            # Fallback pour anciennes versions
             curve_array = CurveArray()
             for curve in curve_loop:
                 curve_array.Append(curve)
@@ -79,10 +86,10 @@ def create_roof(doc, uidoc):
         
         t.Commit()
     
-    TaskDialog.Show("Succès", 
-        "Toit créé!\\n"
-        "Pente: " + str(ROOF_SLOPE_DEG) + "°\\n"
-        "Niveau: " + TARGET_LEVEL)
+    TaskDialog.Show("Succes", 
+        "Toit cree!\n"
+        "Pente: " + str(ROOF_SLOPE_DEG) + "deg\n"
+        "Niveau: " + level.Name)
     
     return roof
 
