@@ -71,13 +71,35 @@ def create_beam(doc, uidoc):
     
     # Trouve un type de poutre
     beam_type = None
-    for fam in FilteredElementCollector(doc).OfClass(FamilySymbol):
-        if fam.Category and fam.Category.Name in ["Structural Framing", "Charpente", "Poutres"]:
-            beam_type = fam
-            break
+    collector = FilteredElementCollector(doc).OfClass(FamilySymbol)
+    
+    for fam in collector:
+        if fam.Category:
+            cat_name = fam.Category.Name
+            # Cherche les categories de poutres (anglais/francais)
+            if cat_name in ["Structural Framing", "Charpente", "Poutres", "Framing", "Structural Framing"]:
+                beam_type = fam
+                break
+            # Si c'est une famille utilisable comme poutre
+            if "beam" in cat_name.lower() or "poutre" in cat_name.lower():
+                beam_type = fam
+                break
+    
+    # Si toujours pas trouve, prend n'importe quel FamilySymbol dispo
+    if not beam_type:
+        for fam in collector:
+            if fam and hasattr(fam, 'IsActive'):
+                beam_type = fam
+                break
     
     if not beam_type:
-        TaskDialog.Show("Erreur", "Aucun type de poutre trouve! Charge une famille de poutres.")
+        TaskDialog.Show("Erreur", 
+            "Aucun type de poutre trouve!\n\n"
+            "Pour charger une famille:\n"
+            "1. Insert -> Load Family\n"
+            "2. Va dans Structural Framing\n"
+            "3. Charge une famille de poutres\n"
+            "(ex: M_Concrete-Rectangular Beam.rfa)")
         return None
     
     # Demande les points

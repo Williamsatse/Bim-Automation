@@ -50,13 +50,31 @@ def create_column(doc, uidoc):
         return None
     
     col_type = None
-    for fam in FilteredElementCollector(doc).OfClass(FamilySymbol):
-        if fam.Category and fam.Category.Name in ["Structural Columns", "Colonnes structurelles"]:
-            col_type = fam
-            break
+    collector = FilteredElementCollector(doc).OfClass(FamilySymbol)
+    
+    for fam in collector:
+        if fam.Category:
+            cat_name = fam.Category.Name
+            if cat_name in ["Structural Columns", "Colonnes structurelles", "Columns", "Colonnes"]:
+                col_type = fam
+                break
+            if "column" in cat_name.lower() or "colonne" in cat_name.lower():
+                col_type = fam
+                break
     
     if not col_type:
-        TaskDialog.Show("Erreur", "Aucun type de colonne trouve!")
+        for fam in collector:
+            if fam and hasattr(fam, 'IsActive'):
+                col_type = fam
+                break
+    
+    if not col_type:
+        TaskDialog.Show("Erreur", 
+            "Aucun type de colonne trouve!\n\n"
+            "Pour charger une famille:\n"
+            "1. Insert -> Load Family\n"
+            "2. Va dans Structural Columns\n"
+            "3. Charge une famille de colonnes")
         return None
     
     TaskDialog.Show("Info", "Clique pour placer la colonne")
