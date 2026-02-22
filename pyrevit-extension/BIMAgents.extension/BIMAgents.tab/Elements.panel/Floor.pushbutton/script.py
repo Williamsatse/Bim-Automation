@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-BIM Agent - Création de Dalle
+BIM Agent - Creation de Dalle
 """
 
 from Autodesk.Revit.DB import *
@@ -10,25 +10,40 @@ import clr
 clr.AddReference('RevitAPI')
 clr.AddReference('RevitAPIUI')
 
-# Paramètres
+# Parametres
 FLOOR_THICKNESS_MM = 200
-TARGET_LEVEL = "Niveau 1"
 IS_STRUCTURAL = True
 
 FLOOR_THICKNESS = FLOOR_THICKNESS_MM / 304.8
 
 
-def create_floor(doc, uidoc):
-    """Crée une dalle"""
+def get_active_level(doc):
+    """Recupere le niveau actif"""
+    active_view = doc.ActiveView
     
-    level = None
+    if hasattr(active_view, 'GenLevel') and active_view.GenLevel:
+        return active_view.GenLevel
+    
+    view_elevation = active_view.Origin.Z
+    closest_level = None
+    min_diff = float('inf')
+    
     for lvl in FilteredElementCollector(doc).OfClass(Level):
-        if lvl.Name == TARGET_LEVEL:
-            level = lvl
-            break
+        diff = abs(lvl.Elevation - view_elevation)
+        if diff < min_diff:
+            min_diff = diff
+            closest_level = lvl
+    
+    return closest_level
+
+
+def create_floor(doc, uidoc):
+    """Cree une dalle"""
+    
+    level = get_active_level(doc)
     
     if not level:
-        TaskDialog.Show("Erreur", "Niveau '" + TARGET_LEVEL + "' non trouvé!")
+        TaskDialog.Show("Erreur", "Aucun niveau detecte.")
         return None
     
     floor_type = None
@@ -37,17 +52,16 @@ def create_floor(doc, uidoc):
         break
     
     if not floor_type:
-        TaskDialog.Show("Erreur", "Aucun type de dalle trouvé!")
+        TaskDialog.Show("Erreur", "Aucun type de dalle trouve!")
         return None
     
-    TaskDialog.Show("Info", "Sélectionnez les points du contour de la dalle (ESC pour terminer)")
+    TaskDialog.Show("Info", "Selectionne les points du contour (ESC pour finir)")
     
     points = []
     while True:
         try:
             point = uidoc.Selection.PickPoint("Point suivant")
-            projected = XYZ(point.X, point.Y, level.Elevation)
-            points.append(projected)
+            points.append(point)
         except:
             break
     
@@ -62,7 +76,7 @@ def create_floor(doc, uidoc):
         line = Line.CreateBound(start, end)
         curve_loop.Append(line)
     
-    with Transaction(doc, "Créer Dalle") as t:
+    with Transaction(doc, "Creer Dalle") as t:
         t.Start()
         
         try:
@@ -80,10 +94,10 @@ def create_floor(doc, uidoc):
         
         t.Commit()
     
-    TaskDialog.Show("Succès", 
-        "Dalle créée!\\n"
-        "Épaisseur: " + str(FLOOR_THICKNESS_MM) + "mm\\n"
-        "Niveau: " + TARGET_LEVEL + "\\n"
+    TaskDialog.Show("Succes", 
+        "Dalle creee!\n"
+        "Epaisseur: " + str(FLOOR_THICKNESS_MM) + "mm\n"
+        "Niveau: " + level.Name + "\n"
         "Structurelle: " + ('Oui' if IS_STRUCTURAL else 'Non'))
     
     return floor
