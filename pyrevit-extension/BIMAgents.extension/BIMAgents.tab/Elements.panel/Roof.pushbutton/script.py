@@ -76,6 +76,7 @@ def create_roof(doc, uidoc):
     with Transaction(doc, "Creer Toit") as t:
         t.Start()
         
+        # RoofType ne necessite pas d'activation
         try:
             roof = Floor.Create(doc, [curve_loop], roof_type.Id, level.Id)
         except:

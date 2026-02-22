@@ -79,6 +79,7 @@ def create_floor(doc, uidoc):
     with Transaction(doc, "Creer Dalle") as t:
         t.Start()
         
+        # FloorType ne necessite pas d'activation
         try:
             floor = Floor.Create(doc, [curve_loop], floor_type.Id, level.Id)
         except:

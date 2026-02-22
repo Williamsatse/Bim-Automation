@@ -67,11 +67,7 @@ def create_wall(doc, uidoc):
     with Transaction(doc, "Creer Mur") as t:
         t.Start()
         
-        # Active le type a l'interieur de la transaction
-        if not wall_type.IsActive:
-            wall_type.Activate()
-            doc.Regenerate()
-        
+        # WallType ne necessite pas d'activation
         wall = Wall.Create(
             doc,
             line,
