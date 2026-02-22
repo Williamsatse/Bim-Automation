@@ -59,15 +59,16 @@ def create_column(doc, uidoc):
         TaskDialog.Show("Erreur", "Aucun type de colonne trouve!")
         return None
     
-    if not col_type.IsActive:
-        col_type.Activate()
-        doc.Regenerate()
-    
     TaskDialog.Show("Info", "Clique pour placer la colonne")
     point = uidoc.Selection.PickPoint("Point de placement")
     
     with Transaction(doc, "Creer Colonne") as t:
         t.Start()
+        
+        # Active le type a l'interieur de la transaction
+        if not col_type.IsActive:
+            col_type.Activate()
+            doc.Regenerate()
         
         column = doc.Create.NewFamilyInstance(
             point, 

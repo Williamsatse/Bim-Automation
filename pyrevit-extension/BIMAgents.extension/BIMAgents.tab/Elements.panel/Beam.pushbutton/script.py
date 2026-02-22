@@ -80,11 +80,6 @@ def create_beam(doc, uidoc):
         TaskDialog.Show("Erreur", "Aucun type de poutre trouve! Charge une famille de poutres.")
         return None
     
-    # Active le type
-    if not beam_type.IsActive:
-        beam_type.Activate()
-        doc.Regenerate()
-    
     # Demande les points
     TaskDialog.Show("Info", "Clique pour le point de depart de la poutre")
     start_point = uidoc.Selection.PickPoint("Point de depart")
@@ -98,6 +93,12 @@ def create_beam(doc, uidoc):
     # Cree la poutre
     with Transaction(doc, "Creer Poutre") as t:
         t.Start()
+        
+        # Active le type a l'interieur de la transaction
+        if not beam_type.IsActive:
+            beam_type.Activate()
+            doc.Regenerate()
+        
         beam = doc.Create.NewFamilyInstance(line, beam_type, level, StructuralType.Beam)
         
         # Ajuste la hauteur
