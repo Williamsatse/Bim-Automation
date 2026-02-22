@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 BIM Agent - Création de Toit
 """

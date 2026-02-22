@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 BIM Agent - Création de Poutre
 Génère et exécute une poutre structurelle
